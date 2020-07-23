@@ -235,7 +235,7 @@ func main() {
 		t, _ := tail.TailFile(config["accessLogPath"], tail.Config{Follow: true})
 		for line := range t.Lines {
 			// fmt.Println(line.Text)
-			parseLog(line.Text, p)
+			go parseLog(line.Text, p)
 		}
 	} else {
 		panic("config file error,no log_format configured")
