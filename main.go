@@ -69,12 +69,14 @@ func InitConfig(path string) {
 	}
 }
 
+//生成正则表达式
 func getPattern(logFormat string) (p string) {
-	fmt.Println(logFormat)
+	//fmt.Println(logFormat)
+	//替换" 和 []
 	logFormat = strings.Replace(logFormat, "\"", "\\\"", -1)
 	logFormat = strings.Replace(logFormat, "[", "\\[", -1)
 	logFormat = strings.Replace(logFormat, "]", "\\]", -1)
-	fmt.Println(logFormat)
+	//fmt.Println(logFormat)
 
 	for k, v := range LogPatternMap {
 		logFormat = strings.Replace(logFormat, k, "("+v+")", -1)
@@ -82,6 +84,7 @@ func getPattern(logFormat string) (p string) {
 	return logFormat
 }
 
+//解析log
 func parseLog(line, regPattern string) {
 	// r := regexp.MustCompile(`(\[(\d{2})\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2}) \+\d{4}\] (\"(?:[^"]|\")+|-\") (\d{3}) (\d*\.\d*|\-)  (\d*\.\d*|\-) \"-\" (\"(?:[^"]|\")+|-\") (\d+\.\d+\.\d+\.\d+)`)
 	// r := regexp.MustCompile(`([\d\.]+)\s+([^\[]+)\s+([^\[]+)\s+\[([^\]]+)\]\s+\"([^"]+)\"\s+(\d{3})\s+(\d+)\s+\"([^"]+)\"\s+\"([^"]+)\"\s+`)
@@ -99,10 +102,12 @@ func parseLog(line, regPattern string) {
 			} else {
 
 				fmt.Println("wrong log Format")
+				fmt.Println(line)
 			}
 		} else {
-			fmt.Println(err)
 			fmt.Println("get http_x_forwarded_for_index failed")
+			fmt.Println(err)
+			fmt.Println(ret)
 		}
 
 	}
@@ -231,8 +236,8 @@ func main() {
 	//fmt.Println(config)
 	if logFormat, ok := config["log_format"]; ok && len(logFormat) > 0 {
 		p := getPattern(logFormat)
-		fmt.Println(p)
-		t, _ := tail.TailFile(config["accessLogPath"], tail.Config{Follow: true})
+		//fmt.Println(p)
+		t, _ := tail.TailFile(config["accessLogPath"], tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: 0, Whence: 2}}) //从末尾开始
 		for line := range t.Lines {
 			// fmt.Println(line.Text)
 			go parseLog(line.Text, p)
