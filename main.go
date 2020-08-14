@@ -12,10 +12,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nxadm/tail"
 )
+
+var logPattern string
 
 var LogPatternMap = map[string]string{
 	"$time_local":             `[^\[\]]+`,
@@ -231,16 +234,53 @@ func sendDingMsg(content map[string]interface{}) {
 	}
 }
 
+type job struct {
+	accessLog string
+}
+
+//任务信道
+var jobs = make(chan job, 50)
+
+func producer() {
+	t, _ := tail.TailFile(config["accessLogPath"], tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: 0, Whence: 2}}) //从末尾开始
+	for line := range t.Lines {
+		job := job{line.Text}
+		jobs <- job
+	}
+	close(jobs)
+}
+func consumer(wg *sync.WaitGroup) {
+	for job := range jobs {
+		parseLog(job.accessLog, logPattern)
+		time.Sleep(time.Duration(3) * time.Second)
+	}
+	defer wg.Done()
+}
+func createComsumerPool(noOfConsumers int) {
+	var wg sync.WaitGroup
+	for i := 0; i < noOfConsumers; i++ {
+		fmt.Println("#worker-", i, " started")
+		wg.Add(1)
+		go consumer(&wg)
+	}
+	wg.Wait()
+}
+
 func main() {
 	InitConfig("config/config")
-	//fmt.Println(config)
 	if logFormat, ok := config["log_format"]; ok && len(logFormat) > 0 {
-		p := getPattern(logFormat)
-		//fmt.Println(p)
-		t, _ := tail.TailFile(config["accessLogPath"], tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: 0, Whence: 2}}) //从末尾开始
-		for line := range t.Lines {
-			// fmt.Println(line.Text)
-			go parseLog(line.Text, p)
+		logPattern = getPattern(logFormat)
+		if len(os.Args) > 1 {
+			noOfWorkers, err := strconv.Atoi(os.Args[1])
+			if err != nil {
+				panic(err)
+			}
+			go producer()
+			if noOfWorkers > 0 {
+				createComsumerPool(noOfWorkers)
+			} else {
+				createComsumerPool(10)
+			}
 		}
 	} else {
 		panic("config file error,no log_format configured")
