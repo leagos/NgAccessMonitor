@@ -1,6 +1,6 @@
 log_format=$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent $request_time $upstream_response_time "$http_referer" "$http_user_agent" $http_x_forwarded_for
 http_x_forwarded_for_index=11
 request_index=4
-accessLogPath=/Volumes/HD/go/src/logwriter/log/access.log
+accessLogPath=/Volumes/HD/go/src/monitor/log
 ding_robot_url=https://oapi.dingtalk.com/robot/send?access_token=4dc7cf9c6aa85458e318ec5c9f4e5622ae23f246239bf37fadbd1fe4f2d21610
 baidu_map_ak=OMpvV3WcnZL5zavUEyhdKgviDW2InHYD
