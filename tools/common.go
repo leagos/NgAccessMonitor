@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -110,8 +113,11 @@ func parseLog(line, regPattern string) (status bool, msg string, rst []string, i
 	status = false
 	msg = ""
 
+	fmt.Println("regPattern:" + regPattern)
 	r := regexp.MustCompile(regPattern)
+	fmt.Println(line)
 	ret := r.FindStringSubmatch(line)
+	fmt.Println(ret)
 	if position, ok := Config["http_x_forwarded_for_index"]; ok && len(position) > 0 {
 		idx, err := strconv.Atoi(position)
 		if err == nil {
@@ -122,6 +128,7 @@ func parseLog(line, regPattern string) (status bool, msg string, rst []string, i
 				rst = ret
 				ipIdx = idx
 			} else {
+
 				msg = "wrong log Format"
 				//fmt.Println("wrong log Format")
 				//fmt.Println(line)
@@ -133,7 +140,7 @@ func parseLog(line, regPattern string) (status bool, msg string, rst []string, i
 			//fmt.Println(ret)
 		}
 	}
-	return
+	return status, msg, rst, ipIdx
 }
 
 //status false获取失败 location ！= "CN" 则是国外ip
@@ -166,17 +173,18 @@ func GetIPLocation(ret []string, ipIdx int) (status bool, location, msg string) 
 		arr := strings.Split(address.(string), sep)
 		if len(arr) > 0 && arr[0] != "CN" {
 			fmt.Printf("ip not china,ip location:%v\n", arr[0])
-			text := "## 国外IP访问，请检查\n " +
-				"> 1. IP:" + ret[ipIdx] + "\n"
-			if requestIdx, ok := Config["request_index"]; ok && len(requestIdx) > 0 {
-				reqIdxInt, err := strconv.Atoi(requestIdx)
-				if err == nil {
-					if len(ret) > reqIdxInt {
-						//ip := ret[idx]
-						text += "> 2. Dest:" + ret[reqIdxInt] + "\n"
-					}
-				}
-			}
+			//text := "## 国外IP访问，请检查\n " +
+			//	"> 1. IP:" + ret[ipIdx] + "\n"
+			//if requestIdx, ok := Config["request_index"]; ok && len(requestIdx) > 0 {
+			//	reqIdxInt, err := strconv.Atoi(requestIdx)
+			//	if err == nil {
+			//		if len(ret) > reqIdxInt {
+			//			//ip := ret[idx]
+			//			text += "> 2. Dest:" + ret[reqIdxInt] + "\n"
+			//		}
+			//	}
+			//}
+			text := GetDingMsgText(ret, ipIdx)
 			status = true
 			location = "F"
 			msg = text
@@ -231,7 +239,9 @@ func GetIPLocation(ret []string, ipIdx int) (status bool, location, msg string) 
 	return status, location, msg
 }
 
-func sendDingMsg(content string) {
+func sendDingMsg(content string, ip int) {
+	//更新时间
+	Update(Db, ip)
 
 	postData := map[string]interface{}{
 		"msgtype": "markdown",
@@ -278,4 +288,51 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// IPString2Long 把ip字符串转为数值
+func IPString2Long(ip string) (int, error) {
+	b := net.ParseIP(ip).To4()
+	if b == nil {
+		return 0, errors.New("invalid ipv4 format")
+	}
+
+	return int(b[3]) | int(b[2])<<8 | int(b[1])<<16 | int(b[0])<<24, nil
+}
+
+// Long2IPString 把数值转为ip字符串
+func Long2IPString(i int) (string, error) {
+	if i > math.MaxUint32 {
+		return "", errors.New("beyond the scope of ipv4")
+	}
+
+	ip := make(net.IP, net.IPv4len)
+	ip[0] = byte(i >> 24)
+	ip[1] = byte(i >> 16)
+	ip[2] = byte(i >> 8)
+	ip[3] = byte(i)
+
+	return ip.String(), nil
+}
+
+func GetDingMsgText(ret []string, ipIdx int) (text string) {
+
+	text = "## 国外IP访问，请检查\n " +
+		"> 1. IP:" + ret[ipIdx] + "\n"
+	if requestIdx, ok := Config["request_index"]; ok && len(requestIdx) > 0 {
+		reqIdxInt, err := strconv.Atoi(requestIdx)
+		if err == nil {
+			if len(ret) > reqIdxInt {
+				//ip := ret[idx]
+				text += "> 2. Dest:" + ret[reqIdxInt] + "\n"
+			}
+		}
+	}
+	return text
 }

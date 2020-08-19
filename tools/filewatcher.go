@@ -31,23 +31,23 @@ func CreateWatcher(fileChan chan string) {
 				// Rename 重命名
 				// Chmod 修改权限
 				if event.Op&fsnotify.Create == fsnotify.Create {
-					//log.Println("创建文件 : ", event.Name)
+					log.Println("创建文件 : ", event.Name)
 					EventProcess(event.Name, fileChan)
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					//log.Println("写入文件 : ", event.Name)
+					log.Println("写入文件 : ", event.Name)
 					EventProcess(event.Name, fileChan)
 				}
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					//log.Println("删除文件 : ", event.Name)
+					log.Println("删除文件 : ", event.Name)
 					EventProcess(event.Name, fileChan)
 				}
 				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					//log.Println("重命名文件 : ", event.Name)
+					log.Println("重命名文件 : ", event.Name)
 					EventProcess(event.Name, fileChan)
 				}
 				if event.Op&fsnotify.Chmod == fsnotify.Chmod {
-					//log.Println("修改权限 : ", event.Name)
+					log.Println("修改权限 : ", event.Name)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
