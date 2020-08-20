@@ -16,6 +16,8 @@ type Ip struct {
 	ip       int
 	location string
 	wTime    int64
+	ipStr    string
+	number   int64
 }
 
 //从数据库中查询ip
@@ -24,7 +26,7 @@ func FindIp(ip int, db *sql.DB) (ipInfo Ip, err error) {
 	if err == nil {
 		var id int
 		for rows.Next() {
-			err = rows.Scan(&id, &ipInfo.ip, &ipInfo.location, &ipInfo.wTime)
+			err = rows.Scan(&id, &ipInfo.ip, &ipInfo.location, &ipInfo.wTime, &ipInfo.ipStr, &ipInfo.number)
 		}
 
 	}
@@ -33,16 +35,22 @@ func FindIp(ip int, db *sql.DB) (ipInfo Ip, err error) {
 
 func Insert(db *sql.DB, ipInt int, location string) (err error) {
 	//插入记录
-	stmt, err := db.Prepare("INSERT INTO ip(ip, location, w_time) values(?,?,?)")
+	stmt, err := db.Prepare("INSERT INTO ip(ip, location, w_time,ip_str,number ) values(?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(ipInt, location, time.Now().Unix())
+	ipStr, err := Long2IPString(ipInt)
+
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(ipInt, location, time.Now().Unix(), ipStr, 1)
 	return err
 }
 
 func Update(db *sql.DB, ipInt int) {
-	stmt, err := db.Prepare("update ip set w_time=? where ip=?")
+	//fmt.Println("更新访问次数")
+	stmt, err := db.Prepare("update ip set w_time=?,number = number+1 where ip=?")
 	checkErr(err)
 	_, err = stmt.Exec(time.Now().Unix(), ipInt)
 	checkErr(err)
