@@ -191,14 +191,14 @@ func GetIPLocation(ret []string, ipIdx int) (status bool, location, msg string) 
 			return false, "CN", "获取" + ret[ipIdx] + "区域失败" + d["message"].(string)
 		}
 	}
-	fmt.Println("##GetIPLocation##：" + msg)
+	//fmt.Println("##GetIPLocation##：" + msg)
 	return status, location, msg
 }
 
 func sendDingMsg(content string, ip int) {
 	//更新时间
 	Update(Db, ip)
-	fmt.Println("###发送钉钉消息###")
+	PrintLog("###发送钉钉消息###")
 	postData := map[string]interface{}{
 		"msgtype": "markdown",
 		"markdown": map[string]string{
@@ -208,7 +208,7 @@ func sendDingMsg(content string, ip int) {
 	}
 	bytesData, err := json.Marshal(postData)
 	if err != nil {
-		fmt.Println(err.Error())
+		PrintLog(err.Error())
 		return
 	}
 	reader := bytes.NewReader(bytesData)
@@ -216,17 +216,17 @@ func sendDingMsg(content string, ip int) {
 	//if url, ok := Config["ding_robot_url"]; ok {
 	request, err := http.NewRequest("POST", Config["ding_robot_url"], reader)
 	if err != nil {
-		fmt.Println(err.Error())
+		PrintLog(err.Error())
 		return
 	}
 	request.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	client := http.Client{}
-	rsp, err := client.Do(request)
+	_, err = client.Do(request)
 	if err != nil {
-		fmt.Println(err.Error())
+		PrintLog(err.Error())
 	}
-	fmt.Println(rsp)
-	fmt.Println("###发送钉钉消息 完毕###")
+	//PrintLog(rsp)
+	PrintLog("###发送钉钉消息 完毕###")
 }
 
 /*
@@ -290,4 +290,9 @@ func GetDingMsgText(ret []string, ipIdx int, fineName string) (text string) {
 		}
 	}
 	return text
+}
+
+func PrintLog(a ...interface{}) {
+	fmt.Println(time.Now().Format("###2006-01-02 15:04:05###"))
+	fmt.Println(a)
 }

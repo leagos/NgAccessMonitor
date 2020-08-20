@@ -2,7 +2,6 @@ package tools
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/nxadm/tail"
 	"os"
 	"strconv"
@@ -23,38 +22,38 @@ type Job struct {
 //var Jobs = make(chan job, 50)
 
 func Producer(accessLogPath string, jobs chan Job) {
-	fmt.Println("****开启生产者监控***" + accessLogPath)
-	//fmt.Println(accessLogPath)
+	PrintLog("****开启生产者监控***" + accessLogPath)
+	//PrintLog(accessLogPath)
 	t, err := tail.TailFile(accessLogPath, tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: 0, Whence: 2}}) //从末尾开始
 	if err != nil {
-		fmt.Println(err)
+		PrintLog(err)
 		return
 	}
 	for line := range t.Lines {
-		//fmt.Println(strconv.Itoa(time.Now().Second())+"****新任务***"+line.Text)
+		//PrintLog(strconv.Itoa(time.Now().Second())+"****新任务***"+line.Text)
 		job := Job{line.Text, accessLogPath}
 		jobs <- job
 	}
-	fmt.Println("##关闭生产者监控##" + accessLogPath)
+	PrintLog("##关闭生产者监控##" + accessLogPath)
 }
 func consumer(wg *sync.WaitGroup, jobs chan Job, i int) {
 	for job := range jobs {
-		//fmt.Println("我是"+ strconv.Itoa(i)+"号工人,收到任务")
-		//fmt.Println(job)
+		//PrintLog("我是"+ strconv.Itoa(i)+"号工人,收到任务")
+		//PrintLog(job)
 		status, msg, rst, ipIdx := parseLog(job.accessLog, logPattern)
 		if status {
 			ipInt, err := IPString2Long(rst[ipIdx])
 			ipInfo, err := FindIp(ipInt, Db)
 			checkErr(err)
 			Update(Db, ipInt)
-			//fmt.Println("查询ip")
+			//PrintLog("查询ip")
 			if ipInfo.location != "" {
 				//查询到
 				now := time.Now().Unix()
 				//5分钟内不重复发送钉钉
 				if ipInfo.location != "CN" {
-					//fmt.Println("国外IP")
-					//fmt.Println(ipInfo)
+					//PrintLog("国外IP")
+					//PrintLog(ipInfo)
 					if (now - ipInfo.wTime) > 5*60 {
 						message := GetDingMsgText(rst, ipIdx, job.fileName)
 						sendDingMsg(message, ipInt)
@@ -65,18 +64,18 @@ func consumer(wg *sync.WaitGroup, jobs chan Job, i int) {
 				if ok {
 					Insert(Db, ipInt, location)
 					if location != "CN" {
-						fmt.Println("******国外ip******")
+						PrintLog("******国外ip******")
 						message := GetDingMsgText(rst, ipIdx, job.fileName)
 						sendDingMsg(message, ipInt)
 					}
 				} else {
-					fmt.Println("##获取ip区域失败##")
-					fmt.Println(msg)
+					PrintLog("##获取ip区域失败##")
+					PrintLog(msg)
 				}
 			}
 
 		} else {
-			fmt.Println(msg)
+			PrintLog(msg)
 		}
 	}
 	defer wg.Done()
@@ -84,7 +83,7 @@ func consumer(wg *sync.WaitGroup, jobs chan Job, i int) {
 func CreateComsumerPool(noOfConsumers int, jobs chan Job) {
 	var wg sync.WaitGroup
 	for i := 0; i < noOfConsumers; i++ {
-		fmt.Println("#worker-", i, " started")
+		PrintLog("#worker-", i, " started")
 		wg.Add(1)
 		go consumer(&wg, jobs, i)
 	}
@@ -116,17 +115,17 @@ func StartMointor() {
 		var gRWLock *sync.RWMutex
 		gRWLock = new(sync.RWMutex)
 		for fileName := range fileChan {
-			fmt.Println(WatchedFiles)
+			//PrintLog(WatchedFiles)
 			//如果文件存在
 			gRWLock.RLock()
 			if exist, _ := PathExists(fileName); exist {
 				//文件没有被监控 记录文件并
-				//fmt.Println("###已监控文件###")
-				fmt.Println(WatchedFiles)
+				//PrintLog("###已监控文件###")
+				//PrintLog(WatchedFiles)
 				if _, ok := WatchedFiles[fileName]; !ok {
-					//fmt.Println("不在监控队列" + fileName)
+					//PrintLog("不在监控队列" + fileName)
 					WatchedFiles[fileName] = true
-					//fmt.Println("##开启生产者协程##"+fileName)
+					PrintLog("##开启生产者协程##" + fileName)
 					go Producer(fileName, jobs)
 				}
 			} else {

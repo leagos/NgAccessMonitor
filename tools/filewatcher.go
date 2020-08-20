@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -68,7 +67,7 @@ func CreateWatcher(fileChan chan string) {
 func EventProcess(eventName string, fileChannel chan string) {
 	//只监控.log文件的变化
 	if strings.HasSuffix(eventName, `.log`) {
-		fmt.Println("log文件出现：" + eventName)
+		//fmt.Println("log文件出现：" + eventName)
 		//文件存在 丢到信道去
 		if ok, _ := PathExists(eventName); ok {
 			//fmt.Println("写入信道" + eventName)
