@@ -152,7 +152,8 @@ func GetIPLocation(ret []string, ipIdx int) (status bool, location, msg string) 
 	url := "http://api.map.baidu.com/location/ip?ak=" + baiduMapAk + "&ip=" + ret[ipIdx]
 	resp, err := client.Get(url)
 	if err != nil {
-		panic(err.Error())
+		return false, "CN", "获取" + ret[ipIdx] + "区域失败 - error:" + err.Error()
+		//panic(err.Error())
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)

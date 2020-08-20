@@ -23,6 +23,7 @@ type Ip struct {
 //从数据库中查询ip
 func FindIp(ip int, db *sql.DB) (ipInfo Ip, err error) {
 	rows, err := db.Query("SELECT * FROM ip where ip =" + strconv.Itoa(ip))
+	defer rows.Close()
 	if err == nil {
 		var id int
 		for rows.Next() {
