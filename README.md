@@ -26,8 +26,7 @@ $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent $r
 * 百度地图AK
 
 ## 运行说明
-* 命令：./monitor [消费者数量]    
-* 例如：./monitor 10 开启10个消费者
+* 命令： nohup ./monitor [消费者数量] > run.log &  
 
 
 
