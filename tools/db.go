@@ -30,6 +30,8 @@ func FindIp(ip int, db *sql.DB) (ipInfo Ip, err error) {
 			err = rows.Scan(&id, &ipInfo.ip, &ipInfo.location, &ipInfo.wTime, &ipInfo.ipStr, &ipInfo.number)
 		}
 
+	} else {
+		ipInfo = Ip{}
 	}
 	return ipInfo, err
 }
