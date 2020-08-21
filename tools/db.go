@@ -23,15 +23,19 @@ type Ip struct {
 //从数据库中查询ip
 func FindIp(ip int, db *sql.DB) (ipInfo Ip, err error) {
 	rows, err := db.Query("SELECT * FROM ip where ip =" + strconv.Itoa(ip))
-	defer rows.Close()
+
 	if err == nil {
 		var id int
 		for rows.Next() {
 			err = rows.Scan(&id, &ipInfo.ip, &ipInfo.location, &ipInfo.wTime, &ipInfo.ipStr, &ipInfo.number)
 		}
-
+		//把rows.Close()放到err=nil 否则err的时候 rows不存在 会报invalid memory address or nil pointer dereference
+		//试一下
+		defer rows.Close()
 	} else {
 		ipInfo = Ip{}
+		//记录一下错误
+		PrintLog("FindIp失败：" + err.Error())
 	}
 	return ipInfo, err
 }
